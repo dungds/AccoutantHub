@@ -44,9 +44,9 @@ const targetOptions: Array<{ value: Encoding; label: string }> = [
 ];
 
 export function EncodingTool() {
-  const [input, setInput] = useState(SAMPLE_TEXT.unicode);
+  const [input, setInput] = useState(SAMPLE_TEXT.vni);
   const [sourceEncoding, setSourceEncoding] = useState<SourceEncoding>("auto");
-  const [targetEncoding, setTargetEncoding] = useState<Encoding>("vni");
+  const [targetEncoding, setTargetEncoding] = useState<Encoding>("unicode");
   const [copied, setCopied] = useState(false);
   const [activeFileName, setActiveFileName] = useState<string | null>(null);
   const [fileTransportEncoding, setFileTransportEncoding] = useState<FileTransportEncoding | null>(

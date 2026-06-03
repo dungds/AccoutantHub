@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+:root {
+  --font-sans: "Aptos", "Segoe UI", "Helvetica Neue", sans-serif;
+  --background: #f5efe2;
+  --foreground: #191611;
+  --muted: #6e6558;
+  --card: rgba(255, 251, 245, 0.78);
+  --line: rgba(72, 59, 40, 0.16);
+  --accent: #0f766e;
+  --accent-strong: #115e59;
+  --accent-soft: rgba(15, 118, 110, 0.12);
+  --warning-soft: rgba(146, 64, 14, 0.12);
+  --shadow: 0 24px 80px rgba(49, 37, 20, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(15, 118, 110, 0.18), transparent 28%),
+    radial-gradient(circle at top right, rgba(180, 83, 9, 0.16), transparent 24%),
+    linear-gradient(180deg, #fcf8f1 0%, #f5efe2 100%);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background: rgba(15, 118, 110, 0.2);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}

@@ -224,7 +224,7 @@ export function EncodingTool() {
       : `Đang dùng đầu vào: ${getEncodingLabel(resolvedSourceEncoding)}`;
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-6 p-4 border-2 border-[var(--line)] rounded-2xl">
       <div className="rounded-[2rem] border border-[var(--line)] bg-[var(--card)] p-5 shadow-[var(--shadow)] backdrop-blur sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="min-w-0">

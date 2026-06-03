@@ -1,13 +1,24 @@
 "use client";
 
-import { startTransition, useDeferredValue, useMemo, useState, type ReactNode } from "react";
+import {
+  startTransition,
+  useDeferredValue,
+  useMemo,
+  useState,
+  type ChangeEvent,
+  type ReactNode,
+} from "react";
 
 import {
   convertText,
+  decodeUploadedFile,
   detectEncoding,
+  encodeDownloadFile,
+  getFileTransportLabel,
   getEncodingLabel,
   resolveSourceEncoding,
   SAMPLE_TEXT,
+  type FileTransportEncoding,
   type Encoding,
   type SourceEncoding,
 } from "@/lib/vietnamese-encoding";
@@ -30,6 +41,11 @@ export default function HomePage() {
   const [sourceEncoding, setSourceEncoding] = useState<SourceEncoding>("auto");
   const [targetEncoding, setTargetEncoding] = useState<Encoding>("vni");
   const [copied, setCopied] = useState(false);
+  const [activeFileName, setActiveFileName] = useState<string | null>(null);
+  const [fileTransportEncoding, setFileTransportEncoding] = useState<FileTransportEncoding | null>(
+    null,
+  );
+  const [fileNotice, setFileNotice] = useState("Bạn có thể dán văn bản hoặc tải lên một file text.");
 
   const deferredInput = useDeferredValue(input);
 
@@ -78,6 +94,48 @@ export default function HomePage() {
     }
   };
 
+  const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const fileData = decodeUploadedFile(bytes, sourceEncoding);
+    const inferredEncodingLabel = getEncodingLabel(fileData.inferredSourceEncoding);
+
+    startTransition(() => {
+      setInput(fileData.text);
+      setActiveFileName(file.name);
+      setFileTransportEncoding(fileData.transportEncoding);
+      setFileNotice(
+        `Đã đọc ${file.name} bằng ${getFileTransportLabel(fileData.transportEncoding)}. Bảng mã nhận được: ${inferredEncodingLabel}.`,
+      );
+      setCopied(false);
+    });
+
+    event.target.value = "";
+  };
+
+  const handleDownload = () => {
+    const outputBytes = encodeDownloadFile(output, targetEncoding);
+    const blob = new Blob([outputBytes], {
+      type:
+        targetEncoding === "unicode"
+          ? "text/plain;charset=utf-8"
+          : "application/octet-stream",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+
+    anchor.href = url;
+    anchor.download = createDownloadFileName(activeFileName, targetEncoding);
+    anchor.click();
+
+    URL.revokeObjectURL(url);
+  };
+
   const sourceDescription =
     sourceEncoding === "auto"
       ? detectedEncoding
@@ -93,15 +151,14 @@ export default function HomePage() {
           <div className="grid gap-6 lg:grid-cols-[1.25fr_0.75fr] lg:items-end">
             <div className="space-y-4">
               <span className="inline-flex items-center rounded-full border border-teal-800/10 bg-teal-800/8 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-teal-800">
-                Next.js + TypeScript + Tailwind
+                Dũng Bùi
               </span>
               <div className="space-y-3">
                 <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-[var(--foreground)] sm:text-5xl">
                   Chuyển mã Unicode, VNI và TCVN3 ngay trong trình duyệt
                 </h1>
                 <p className="max-w-2xl text-base leading-7 text-[var(--muted)] sm:text-lg">
-                  Toàn bộ xử lý chạy ở client-side. Không backend, không database, không upload dữ
-                  liệu lên server.
+                  Toàn bộ xử lý chạy ở client-side.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2 text-sm text-[var(--muted)]">
@@ -161,8 +218,19 @@ export default function HomePage() {
             />
 
             <div className="mt-4 flex flex-wrap gap-2">
+              <UploadButton onChange={handleFileUpload} />
               <ActionButton onClick={handleLoadExample}>Nạp ví dụ</ActionButton>
               <ActionButton onClick={handleClear}>Xóa nhanh</ActionButton>
+            </div>
+
+            <div className="mt-4 rounded-[1.25rem] border border-[var(--line)] bg-white/70 px-4 py-3 text-sm text-[var(--muted)]">
+              <p>{fileNotice}</p>
+              {activeFileName ? (
+                <p className="mt-1 font-medium text-[var(--foreground)]">
+                  File hiện tại: {activeFileName}
+                  {fileTransportEncoding ? ` • ${getFileTransportLabel(fileTransportEncoding)}` : ""}
+                </p>
+              ) : null}
             </div>
           </div>
 
@@ -214,6 +282,7 @@ export default function HomePage() {
 
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <ActionButton onClick={handleCopy}>{copied ? "Đã copy" : "Copy kết quả"}</ActionButton>
+              <ActionButton onClick={handleDownload}>Tải file kết quả</ActionButton>
               <span className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-sm font-medium text-teal-900">
                 {sourceEncoding === "auto" ? "Auto source" : getEncodingLabel(resolvedSourceEncoding)} →{" "}
                 {getEncodingLabel(targetEncoding)}
@@ -225,20 +294,37 @@ export default function HomePage() {
         <section className="grid gap-4 lg:grid-cols-3">
           <InfoCard
             title="Client-side hoàn toàn"
-            description="Logic chuyển mã là TypeScript thuần, chạy ngay trong browser bằng các bảng map tĩnh."
+            description="Logic chuyển mã là TypeScript thuần, chạy ngay trong browser bằng các bảng map tĩnh và xử lý file cục bộ."
+          />
+          <InfoCard
+            title="Upload rồi tải xuống"
+            description="Có thể đọc một file text từ máy người dùng, chuyển mã và tải lại file kết quả mà không đi qua server."
           />
           <InfoCard
             title="Phù hợp Vercel Free"
             description="Không có API route, không có server state và không cần dịch vụ ngoài để deploy."
           />
-          <InfoCard
-            title="Dễ mở rộng"
-            description="Có thể bổ sung thêm auto-detect tốt hơn hoặc thêm các bảng mã khác mà không đổi kiến trúc."
-          />
         </section>
       </div>
     </main>
   );
+}
+
+function createDownloadFileName(fileName: string | null, targetEncoding: Encoding) {
+  if (!fileName) {
+    return `converted-${targetEncoding}.txt`;
+  }
+
+  const lastDotIndex = fileName.lastIndexOf(".");
+
+  if (lastDotIndex <= 0) {
+    return `${fileName}-${targetEncoding}.txt`;
+  }
+
+  const baseName = fileName.slice(0, lastDotIndex);
+  const extension = fileName.slice(lastDotIndex);
+
+  return `${baseName}-${targetEncoding}${extension}`;
 }
 
 function StatCard({ label, value }: { label: string; value: string }) {
@@ -267,6 +353,20 @@ function ActionButton({
     >
       {children}
     </button>
+  );
+}
+
+function UploadButton({ onChange }: { onChange: (event: ChangeEvent<HTMLInputElement>) => void }) {
+  return (
+    <label className="inline-flex cursor-pointer items-center justify-center rounded-full border border-teal-900/10 bg-white px-4 py-2 text-sm font-semibold text-teal-900 transition hover:-translate-y-0.5 hover:bg-teal-50">
+      Tải file lên
+      <input
+        type="file"
+        accept=".txt,.csv,.html,.xml,.md,.log,.json,text/plain,text/csv,text/html,text/xml,application/json"
+        className="sr-only"
+        onChange={onChange}
+      />
+    </label>
   );
 }
 

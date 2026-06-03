@@ -9,6 +9,7 @@ Ung dung Next.js + TypeScript chuyen doi giua `Unicode`, `VNI Windows` va `TCVN3
 - Khong upload du lieu len server
 - UI dung Tailwind CSS
 - Deploy duoc tren Vercel Free
+- Co the tai file text len, chuyen ma va tai file ket qua xuong ngay tren trinh duyet
 
 ## Chay local
 

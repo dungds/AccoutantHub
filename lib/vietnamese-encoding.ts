@@ -1,5 +1,6 @@
 export type Encoding = "unicode" | "vni" | "tcvn3";
 export type SourceEncoding = Encoding | "auto";
+export type FileTransportEncoding = "utf-8" | "windows-1252";
 
 // Mapping data adapted from legacy Vietnamese encoding tables published by
 // VietUnicode and the open-source u-convert project.
@@ -427,6 +428,40 @@ const ENCODING_LABELS: Record<Encoding, string> = {
   tcvn3: "TCVN3 (ABC)",
 };
 
+const CP1252_DECODE_MAP = new Map<number, string>([
+  [0x80, "€"],
+  [0x82, "‚"],
+  [0x83, "ƒ"],
+  [0x84, "„"],
+  [0x85, "…"],
+  [0x86, "†"],
+  [0x87, "‡"],
+  [0x88, "ˆ"],
+  [0x89, "‰"],
+  [0x8a, "Š"],
+  [0x8b, "‹"],
+  [0x8c, "Œ"],
+  [0x8e, "Ž"],
+  [0x91, "‘"],
+  [0x92, "’"],
+  [0x93, "“"],
+  [0x94, "”"],
+  [0x95, "•"],
+  [0x96, "–"],
+  [0x97, "—"],
+  [0x98, "˜"],
+  [0x99, "™"],
+  [0x9a, "š"],
+  [0x9b, "›"],
+  [0x9c, "œ"],
+  [0x9e, "ž"],
+  [0x9f, "Ÿ"],
+]);
+
+const CP1252_ENCODE_MAP = new Map<string, number>(
+  [...CP1252_DECODE_MAP.entries()].map(([byte, char]) => [char, byte]),
+);
+
 const PLACEHOLDER_OFFSET = 0xe000;
 
 type CompiledMatcher = {
@@ -529,8 +564,54 @@ function prepareUnicode(text: string) {
   return text.normalize("NFC");
 }
 
+function decodeUtf8Bytes(bytes: Uint8Array) {
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    return null;
+  }
+}
+
+function decodeWindows1252Bytes(bytes: Uint8Array) {
+  let result = "";
+
+  for (const byte of bytes) {
+    result += CP1252_DECODE_MAP.get(byte) ?? String.fromCharCode(byte);
+  }
+
+  return result;
+}
+
+function encodeWindows1252Bytes(text: string) {
+  const bytes: number[] = [];
+
+  for (const char of text) {
+    const mappedByte = CP1252_ENCODE_MAP.get(char);
+
+    if (mappedByte !== undefined) {
+      bytes.push(mappedByte);
+      continue;
+    }
+
+    const codePoint = char.codePointAt(0);
+
+    if (codePoint !== undefined && codePoint <= 0xff) {
+      bytes.push(codePoint);
+      continue;
+    }
+
+    bytes.push(0x3f);
+  }
+
+  return new Uint8Array(bytes);
+}
+
 export function getEncodingLabel(encoding: Encoding) {
   return ENCODING_LABELS[encoding];
+}
+
+export function getFileTransportLabel(encoding: FileTransportEncoding) {
+  return encoding === "utf-8" ? "UTF-8" : "ANSI / Windows-1252";
 }
 
 export function detectEncoding(text: string): Encoding | null {
@@ -580,6 +661,63 @@ export function resolveSourceEncoding(sourceEncoding: SourceEncoding, text: stri
   }
 
   return detectEncoding(text) ?? "unicode";
+}
+
+export function decodeUploadedFile(bytes: Uint8Array, sourceEncoding: SourceEncoding) {
+  const utf8Text = decodeUtf8Bytes(bytes);
+  const ansiText = decodeWindows1252Bytes(bytes);
+
+  if (sourceEncoding === "unicode") {
+    return {
+      text: prepareUnicode(utf8Text ?? ansiText),
+      transportEncoding: (utf8Text ? "utf-8" : "windows-1252") as FileTransportEncoding,
+      inferredSourceEncoding: "unicode" as Encoding,
+    };
+  }
+
+  if (sourceEncoding === "vni" || sourceEncoding === "tcvn3") {
+    return {
+      text: ansiText,
+      transportEncoding: "windows-1252" as FileTransportEncoding,
+      inferredSourceEncoding: sourceEncoding,
+    };
+  }
+
+  if (utf8Text) {
+    const detectedUtf8Encoding = detectEncoding(utf8Text);
+
+    if (detectedUtf8Encoding === "unicode") {
+      return {
+        text: prepareUnicode(utf8Text),
+        transportEncoding: "utf-8" as FileTransportEncoding,
+        inferredSourceEncoding: detectedUtf8Encoding,
+      };
+    }
+  }
+
+  const detectedAnsiEncoding = detectEncoding(ansiText);
+
+  if (detectedAnsiEncoding === "vni" || detectedAnsiEncoding === "tcvn3") {
+    return {
+      text: ansiText,
+      transportEncoding: "windows-1252" as FileTransportEncoding,
+      inferredSourceEncoding: detectedAnsiEncoding,
+    };
+  }
+
+  return {
+    text: prepareUnicode(utf8Text ?? ansiText),
+    transportEncoding: (utf8Text ? "utf-8" : "windows-1252") as FileTransportEncoding,
+    inferredSourceEncoding: (utf8Text ? detectEncoding(utf8Text) : detectedAnsiEncoding) ?? "unicode",
+  };
+}
+
+export function encodeDownloadFile(text: string, targetEncoding: Encoding) {
+  if (targetEncoding === "unicode") {
+    return new TextEncoder().encode(prepareUnicode(text));
+  }
+
+  return encodeWindows1252Bytes(text);
 }
 
 const SAMPLE_UNICODE =

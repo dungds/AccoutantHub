@@ -113,10 +113,10 @@ export default function HomePage() {
                               : "bg-teal-900/8 text-teal-900"
                             : isActive
                               ? "bg-white/14 text-teal-50"
-                              : "bg-slate-200 text-slate-600"
+                              : "bg-slate-200 text-slate-400"
                         }`}
                       >
-                        {tool.status === "active" ? "Dùng ngay" : "Đang cập nhật"}
+                        {tool.status === "active" ? "Pro" : "Đang cập nhật"}
                       </span>
                     </div>
                   </button>

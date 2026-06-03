@@ -145,27 +145,26 @@ export function EncodingTool() {
 
   return (
     <section className="space-y-6">
-      <div className="rounded-[2rem] border border-[var(--line)] bg-[var(--card)] p-6 shadow-[var(--shadow)] backdrop-blur sm:p-7">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="space-y-3">
-            <span className="inline-flex items-center rounded-full border border-teal-900/10 bg-teal-900/8 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-teal-900">
-              Công cụ đang hoạt động
-            </span>
-            <div>
-              <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                Chuyển mã Unicode, VNI và TCVN3
+      <div className="rounded-[2rem] border border-[var(--line)] bg-[var(--card)] p-5 shadow-[var(--shadow)] backdrop-blur sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center rounded-full border border-teal-900/10 bg-teal-900/8 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-teal-900">
+                Công cụ đang hoạt động
+              </span>
+              <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
+                Chuyển mã Unicode, VNI, TCVN3
               </h2>
-              <p className="mt-3 max-w-3xl text-base leading-7 text-[var(--muted)]">
-                Dành cho dữ liệu kế toán cũ, biểu mẫu legacy và file text cần chuẩn hóa bảng mã
-                trước khi nhập vào phần mềm khác.
-              </p>
             </div>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--muted)]">
+              Chuẩn hóa bảng mã cho dữ liệu kế toán cũ và file text legacy.
+            </p>
           </div>
 
-          <div className="grid min-w-[220px] gap-3 grid-cols-3">
-            <StatCard label="Nguồn" value={getEncodingLabel(resolvedSourceEncoding)} />
-            <StatCard label="Đích" value={getEncodingLabel(targetEncoding)} />
-            <StatCard label="Ký tự" value={String(input.length)} />
+          <div className="flex flex-wrap gap-2">
+            <CompactStat label="Nguồn" value={getEncodingLabel(resolvedSourceEncoding)} />
+            <CompactStat label="Đích" value={getEncodingLabel(targetEncoding)} />
+            <CompactStat label="Ký tự" value={String(input.length)} />
           </div>
         </div>
       </div>
@@ -316,13 +315,13 @@ function createDownloadFileName(fileName: string | null, targetEncoding: Encodin
   return `${baseName}-${targetEncoding}${extension}`;
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function CompactStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[1.25rem] border border-[var(--line)] bg-[#fffdf8] px-4 py-3">
-      <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--muted)]">
+    <div className="rounded-2xl border border-[var(--line)] bg-[#fffdf8] px-3 py-2">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
         {label}
       </div>
-      <div className="mt-2 text-base font-semibold text-[var(--foreground)]">{value}</div>
+      <div className="mt-1 text-sm font-semibold text-[var(--foreground)]">{value}</div>
     </div>
   );
 }

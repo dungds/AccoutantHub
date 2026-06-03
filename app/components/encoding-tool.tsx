@@ -265,7 +265,9 @@ export function EncodingTool() {
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <ActionButton onClick={handleCopy}>{copied ? "Đã copy" : "Copy kết quả"}</ActionButton>
-            <ActionButton onClick={handleDownload}>Tải file kết quả</ActionButton>
+            <ActionButton onClick={handleDownload} icon={<DownloadIcon />}>
+              Tải file kết quả
+            </ActionButton>
             <span className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-sm font-medium text-teal-900">
               {sourceEncoding === "auto" ? "Auto source" : getEncodingLabel(resolvedSourceEncoding)}{" "}
               → {getEncodingLabel(targetEncoding)}
@@ -328,9 +330,11 @@ function StatCard({ label, value }: { label: string; value: string }) {
 function ActionButton({
   children,
   onClick,
+  icon,
 }: {
   children: ReactNode;
   onClick: () => void | Promise<void>;
+  icon?: ReactNode;
 }) {
   return (
     <button
@@ -338,6 +342,7 @@ function ActionButton({
       onClick={onClick}
       className="inline-flex items-center justify-center rounded-full border border-teal-900/10 bg-white px-4 py-2 text-sm font-semibold text-teal-900 transition hover:-translate-y-0.5 hover:bg-teal-50"
     >
+      {icon ? <span className="mr-2 inline-flex h-4 w-4 items-center justify-center">{icon}</span> : null}
       {children}
     </button>
   );
@@ -346,6 +351,9 @@ function ActionButton({
 function UploadButton({ onChange }: { onChange: (event: ChangeEvent<HTMLInputElement>) => void }) {
   return (
     <label className="inline-flex cursor-pointer items-center justify-center rounded-full border border-teal-900/10 bg-white px-4 py-2 text-sm font-semibold text-teal-900 transition hover:-translate-y-0.5 hover:bg-teal-50">
+      <span className="mr-2 inline-flex h-4 w-4 items-center justify-center">
+        <FileIcon />
+      </span>
       Tải file lên
       <input
         type="file"
@@ -354,6 +362,58 @@ function UploadButton({ onChange }: { onChange: (event: ChangeEvent<HTMLInputEle
         onChange={onChange}
       />
     </label>
+  );
+}
+
+function FileIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4" aria-hidden="true">
+      <path
+        d="M6.25 2.5h5l3.75 3.75v8.125A1.875 1.875 0 0 1 13.125 16.25h-6.25A1.875 1.875 0 0 1 5 14.375v-10A1.875 1.875 0 0 1 6.875 2.5Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M11.25 2.5v3.75H15"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M7.5 9.375h5M7.5 12.5h5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4" aria-hidden="true">
+      <path
+        d="M10 3.75v7.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M6.875 8.75 10 11.875 13.125 8.75"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M4.375 14.375h11.25"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }
 

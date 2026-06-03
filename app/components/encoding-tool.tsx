@@ -145,51 +145,29 @@ export function EncodingTool() {
 
   return (
     <section className="space-y-6">
-      <div className="grid gap-6 xl:grid-cols-[1fr_320px]">
-        <div className="rounded-[2rem] border border-[var(--line)] bg-[var(--card)] p-6 shadow-[var(--shadow)] backdrop-blur sm:p-7">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="space-y-3">
-              <span className="inline-flex items-center rounded-full border border-teal-900/10 bg-teal-900/8 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-teal-900">
-                Công cụ đang hoạt động
-              </span>
-              <div>
-                <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                  Chuyển mã Unicode, VNI và TCVN3
-                </h2>
-                <p className="mt-3 max-w-3xl text-base leading-7 text-[var(--muted)]">
-                  Dành cho dữ liệu kế toán cũ, biểu mẫu legacy và file text cần chuẩn hóa bảng mã
-                  trước khi nhập vào phần mềm khác.
-                </p>
-              </div>
+      <div className="rounded-[2rem] border border-[var(--line)] bg-[var(--card)] p-6 shadow-[var(--shadow)] backdrop-blur sm:p-7">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-3">
+            <span className="inline-flex items-center rounded-full border border-teal-900/10 bg-teal-900/8 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-teal-900">
+              Công cụ đang hoạt động
+            </span>
+            <div>
+              <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+                Chuyển mã Unicode, VNI và TCVN3
+              </h2>
+              <p className="mt-3 max-w-3xl text-base leading-7 text-[var(--muted)]">
+                Dành cho dữ liệu kế toán cũ, biểu mẫu legacy và file text cần chuẩn hóa bảng mã
+                trước khi nhập vào phần mềm khác.
+              </p>
             </div>
+          </div>
 
-            <div className="grid min-w-[220px] gap-3 sm:grid-cols-3 xl:grid-cols-1">
-              <StatCard label="Nguồn" value={getEncodingLabel(resolvedSourceEncoding)} />
-              <StatCard label="Đích" value={getEncodingLabel(targetEncoding)} />
-              <StatCard label="Ký tự" value={String(input.length)} />
-            </div>
+          <div className="grid min-w-[220px] gap-3 grid-cols-3">
+            <StatCard label="Nguồn" value={getEncodingLabel(resolvedSourceEncoding)} />
+            <StatCard label="Đích" value={getEncodingLabel(targetEncoding)} />
+            <StatCard label="Ký tự" value={String(input.length)} />
           </div>
         </div>
-
-        <aside className="rounded-[2rem] border border-[var(--line)] bg-white/70 p-6 shadow-[var(--shadow)] backdrop-blur">
-          <div className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--muted)]">
-            Ghi chú nhanh
-          </div>
-          <div className="mt-4 space-y-4">
-            <InfoCard
-              title="Client-side hoàn toàn"
-              description="Dữ liệu được xử lý ngay trong trình duyệt, không cần backend hay upload lên server."
-            />
-            <InfoCard
-              title="Upload rồi tải xuống"
-              description="Có thể đọc một file text từ máy người dùng, chuyển mã và tải lại file kết quả."
-            />
-            <InfoCard
-              title="Phù hợp Vercel Free"
-              description="Không có API route, không có server state và không cần dịch vụ ngoài để deploy."
-            />
-          </div>
-        </aside>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_auto_1fr] xl:items-start">
@@ -295,6 +273,26 @@ export function EncodingTool() {
           </div>
         </div>
       </div>
+
+      <aside className="rounded-[2rem] border border-[var(--line)] bg-white/70 p-6 shadow-[var(--shadow)] backdrop-blur">
+        <div className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--muted)]">
+          Ghi chú nhanh
+        </div>
+        <div className="mt-4 grid gap-4 lg:grid-cols-3">
+          <InfoCard
+            title="Client-side hoàn toàn"
+            description="Dữ liệu được xử lý ngay trong trình duyệt, không cần backend hay upload lên server."
+          />
+          <InfoCard
+            title="Upload rồi tải xuống"
+            description="Có thể đọc một file text từ máy người dùng, chuyển mã và tải lại file kết quả."
+          />
+          <InfoCard
+            title="Phù hợp Vercel Free"
+            description="Không có API route, không có server state và không cần dịch vụ ngoài để deploy."
+          />
+        </div>
+      </aside>
     </section>
   );
 }

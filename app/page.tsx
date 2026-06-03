@@ -96,18 +96,16 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-[320px_1fr]">
-          <aside className="rounded-[2rem] border border-[var(--line)] bg-[var(--card)] p-5 shadow-[var(--shadow)] backdrop-blur sm:p-6">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-xl font-semibold">Danh sách chức năng</h2>
-                <p className="mt-1 text-sm text-[var(--muted)]">
-                  Chọn từng module để làm việc hoặc dành chỗ cho cập nhật sau.
-                </p>
-              </div>
+        <section className="space-y-6">
+          <div className="rounded-[2rem] border border-[var(--line)] bg-[var(--card)] p-5 shadow-[var(--shadow)] backdrop-blur sm:p-6">
+            <div>
+              <h2 className="text-xl font-semibold">Danh sách chức năng</h2>
+              <p className="mt-1 text-sm text-[var(--muted)]">
+                Chọn từng module để làm việc hoặc dành chỗ cho cập nhật sau.
+              </p>
             </div>
 
-            <div className="mt-5 space-y-3">
+            <div className="mt-5 flex gap-3 overflow-x-auto pb-1">
               {tools.map((tool) => {
                 const isActive = tool.id === activeToolId;
 
@@ -118,7 +116,7 @@ export default function HomePage() {
                     onClick={() => {
                       startTransition(() => setActiveToolId(tool.id));
                     }}
-                    className={`w-full rounded-[1.5rem] border p-4 text-left transition ${
+                    className={`min-w-[260px] flex-1 rounded-[1.5rem] border p-4 text-left transition sm:min-w-[280px] ${
                       isActive
                         ? "border-teal-700 bg-teal-900 text-white shadow-lg"
                         : "border-[var(--line)] bg-white/75 text-[var(--foreground)] hover:-translate-y-0.5 hover:bg-white"
@@ -160,15 +158,13 @@ export default function HomePage() {
                 );
               })}
             </div>
-          </aside>
-
-          <div className="space-y-6">
-            {activeTool.id === "encoding" ? (
-              <EncodingTool />
-            ) : (
-              <ComingSoonPanel tool={activeTool} />
-            )}
           </div>
+
+          {activeTool.id === "encoding" ? (
+            <EncodingTool />
+          ) : (
+            <ComingSoonPanel tool={activeTool} />
+          )}
         </section>
       </div>
     </main>

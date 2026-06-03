@@ -22,6 +22,13 @@ import {
   type Encoding,
   type SourceEncoding,
 } from "@/lib/vietnamese-encoding";
+import {
+  convertWorkbookAllSheets,
+  getWorkbookPreview,
+  inferWorkbookFileType,
+  readWorkbook,
+  type WorkbookBundle,
+} from "@/lib/xlsx-workbook";
 
 const sourceOptions: Array<{ value: SourceEncoding; label: string }> = [
   { value: "auto", label: "Tự nhận diện" },
@@ -46,38 +53,69 @@ export function EncodingTool() {
     null,
   );
   const [fileNotice, setFileNotice] = useState("Bạn có thể dán văn bản hoặc tải lên một file text.");
+  const [workbookBundle, setWorkbookBundle] = useState<WorkbookBundle | null>(null);
+  const [workbookBytes, setWorkbookBytes] = useState<Uint8Array | null>(null);
 
   const deferredInput = useDeferredValue(input);
+  const isWorkbookMode = Boolean(workbookBundle && workbookBytes);
 
   const detectedEncoding = useMemo(() => detectEncoding(deferredInput), [deferredInput]);
   const resolvedSourceEncoding = useMemo(
     () => resolveSourceEncoding(sourceEncoding, deferredInput),
     [deferredInput, sourceEncoding],
   );
-  const output = useMemo(
+  const textOutput = useMemo(
     () => convertText(deferredInput, resolvedSourceEncoding, targetEncoding),
     [deferredInput, resolvedSourceEncoding, targetEncoding],
   );
+  const workbookPreviewInput = useMemo(() => {
+    if (!workbookBundle) {
+      return "";
+    }
+
+    return getWorkbookPreview(workbookBundle.workbook);
+  }, [workbookBundle]);
+  const workbookPreviewOutput = useMemo(
+    () => convertText(workbookPreviewInput, resolvedSourceEncoding, targetEncoding),
+    [resolvedSourceEncoding, targetEncoding, workbookPreviewInput],
+  );
+  const inputDisplayValue = isWorkbookMode ? workbookPreviewInput : input;
+  const outputDisplayValue = isWorkbookMode ? workbookPreviewOutput : textOutput;
 
   const handleLoadExample = () => {
     const exampleEncoding = sourceEncoding === "auto" ? resolvedSourceEncoding : sourceEncoding;
 
     startTransition(() => {
+      setWorkbookBundle(null);
+      setWorkbookBytes(null);
+      setActiveFileName(null);
+      setFileTransportEncoding(null);
       setInput(SAMPLE_TEXT[exampleEncoding]);
+      setFileNotice("Bạn có thể dán văn bản hoặc tải lên một file text.");
       setCopied(false);
     });
   };
 
   const handleClear = () => {
     startTransition(() => {
+      setWorkbookBundle(null);
+      setWorkbookBytes(null);
+      setActiveFileName(null);
+      setFileTransportEncoding(null);
       setInput("");
+      setFileNotice("Bạn có thể dán văn bản hoặc tải lên một file text.");
       setCopied(false);
     });
   };
 
   const handleSwap = () => {
     startTransition(() => {
-      setInput(output);
+      setInput(outputDisplayValue);
+      setWorkbookBundle(null);
+      setWorkbookBytes(null);
+      setActiveFileName(null);
+      setFileTransportEncoding(null);
+      setFileNotice("Bạn có thể dán văn bản hoặc tải lên một file text.");
       setSourceEncoding(targetEncoding);
       setTargetEncoding(resolvedSourceEncoding);
       setCopied(false);
@@ -86,7 +124,7 @@ export function EncodingTool() {
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(output);
+      await navigator.clipboard.writeText(outputDisplayValue);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1600);
     } catch {
@@ -102,10 +140,40 @@ export function EncodingTool() {
     }
 
     const bytes = new Uint8Array(await file.arrayBuffer());
+
+    const workbookFileType = inferWorkbookFileType(file.name);
+
+    if (workbookFileType) {
+      const workbookData = readWorkbook(bytes, workbookFileType);
+      const totalRows = workbookData.sheets.reduce((sum, sheet) => sum + sheet.rowCount, 0);
+      const workbookLabel =
+        workbookFileType === "xlsm"
+          ? "Excel macro-enabled"
+          : workbookFileType === "xls"
+            ? "Excel 97-2003"
+            : "Excel workbook";
+
+      startTransition(() => {
+        setWorkbookBundle(workbookData);
+        setWorkbookBytes(bytes);
+        setActiveFileName(file.name);
+        setFileTransportEncoding(null);
+        setFileNotice(
+          `Đã nạp ${file.name} (${workbookLabel}). File có ${workbookData.sheets.length} sheet và ${totalRows} dòng, sẽ chuyển toàn bộ ô text khi tải kết quả.`,
+        );
+        setCopied(false);
+      });
+
+      event.target.value = "";
+      return;
+    }
+
     const fileData = decodeUploadedFile(bytes, sourceEncoding);
     const inferredEncodingLabel = getEncodingLabel(fileData.inferredSourceEncoding);
 
     startTransition(() => {
+      setWorkbookBundle(null);
+      setWorkbookBytes(null);
       setInput(fileData.text);
       setActiveFileName(file.name);
       setFileTransportEncoding(fileData.transportEncoding);
@@ -119,10 +187,20 @@ export function EncodingTool() {
   };
 
   const handleDownload = () => {
-    const outputBytes = encodeDownloadFile(output, targetEncoding);
-    const blob = new Blob([outputBytes], {
-      type:
-        targetEncoding === "unicode"
+    const outputBytes = isWorkbookMode && workbookBytes
+      ? convertWorkbookAllSheets(
+          workbookBytes,
+          workbookBundle!.fileType,
+          resolvedSourceEncoding,
+          targetEncoding,
+        )
+      : encodeDownloadFile(textOutput, targetEncoding);
+    const blob = new Blob([new Uint8Array(outputBytes).buffer], {
+      type: isWorkbookMode
+        ? workbookBundle!.fileType === "xls"
+          ? "application/vnd.ms-excel"
+          : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        : targetEncoding === "unicode"
           ? "text/plain;charset=utf-8"
           : "application/octet-stream",
     });
@@ -137,7 +215,9 @@ export function EncodingTool() {
   };
 
   const sourceDescription =
-    sourceEncoding === "auto"
+    isWorkbookMode
+      ? "Workbook đang ở chế độ xem trước. Khi tải file kết quả, toàn bộ ô text trong workbook sẽ được chuyển."
+      : sourceEncoding === "auto"
       ? detectedEncoding
         ? `Đã nhận diện: ${getEncodingLabel(detectedEncoding)}`
         : "Chưa đủ tín hiệu rõ ràng, đang tạm xử lý như Unicode."
@@ -194,9 +274,14 @@ export function EncodingTool() {
 
           <textarea
             className="mt-5 min-h-[340px] w-full resize-y rounded-[1.5rem] border border-[var(--line)] bg-[#fffdfa] p-4 text-base leading-7 text-[var(--foreground)] outline-none transition focus:border-teal-700"
-            placeholder="Dán nội dung Unicode, VNI hoặc TCVN3 vào đây..."
-            value={input}
+            placeholder={
+              isWorkbookMode
+                ? "Xem trước một phần dữ liệu text trong workbook Excel..."
+                : "Dán nội dung Unicode, VNI hoặc TCVN3 vào đây..."
+            }
+            value={inputDisplayValue}
             onChange={(event) => setInput(event.target.value)}
+            readOnly={isWorkbookMode}
           />
 
           <div className="mt-4 flex flex-wrap gap-2">
@@ -205,12 +290,48 @@ export function EncodingTool() {
             <ActionButton onClick={handleClear}>Xóa nhanh</ActionButton>
           </div>
 
+          {isWorkbookMode && workbookBundle ? (
+            <div className="mt-4 rounded-[1.25rem] border border-[var(--line)] bg-white/70 px-4 py-4">
+              <div>
+                <h4 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">
+                  Excel
+                </h4>
+                <p className="mt-1 text-sm text-[var(--foreground)]">
+                  File Excel sẽ được chuyển toàn bộ ở tất cả sheet. Bản xem trước bên trên chỉ là một phần nội dung text tìm thấy trong workbook.
+                </p>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {workbookBundle.sheets.map((sheet) => (
+                  <span
+                    key={sheet.name}
+                    className="rounded-full border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--foreground)]"
+                  >
+                    {sheet.name} • {sheet.rowCount} dòng
+                  </span>
+                ))}
+              </div>
+
+              <p className="mt-3 text-sm text-[var(--muted)]">
+                Tổng số sheet: {workbookBundle.sheets.length}.
+              </p>
+            </div>
+          ) : null}
+
           <div className="mt-4 rounded-[1.25rem] border border-[var(--line)] bg-white/70 px-4 py-3 text-sm text-[var(--muted)]">
             <p>{fileNotice}</p>
             {activeFileName ? (
               <p className="mt-1 font-medium text-[var(--foreground)]">
                 File hiện tại: {activeFileName}
-                {fileTransportEncoding ? ` • ${getFileTransportLabel(fileTransportEncoding)}` : ""}
+                {isWorkbookMode
+                  ? workbookBundle!.fileType === "xlsm"
+                    ? " • Excel macro-enabled"
+                    : workbookBundle!.fileType === "xls"
+                      ? " • Excel 97-2003"
+                      : " • Excel workbook"
+                  : fileTransportEncoding
+                    ? ` • ${getFileTransportLabel(fileTransportEncoding)}`
+                    : ""}
               </p>
             ) : null}
           </div>
@@ -259,13 +380,15 @@ export function EncodingTool() {
               fontFamily:
                 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
             }}
-            value={output}
+            value={outputDisplayValue}
           />
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            <ActionButton onClick={handleCopy}>{copied ? "Đã copy" : "Copy kết quả"}</ActionButton>
+            <ActionButton onClick={handleCopy}>
+              {copied ? "Đã copy" : isWorkbookMode ? "Copy xem trước" : "Copy kết quả"}
+            </ActionButton>
             <ActionButton onClick={handleDownload} icon={<DownloadIcon />}>
-              Tải file kết quả
+              {isWorkbookMode ? "Tải file Excel kết quả" : "Tải file kết quả"}
             </ActionButton>
             <span className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-sm font-medium text-teal-900">
               {sourceEncoding === "auto" ? "Auto source" : getEncodingLabel(resolvedSourceEncoding)}{" "}
@@ -286,7 +409,7 @@ export function EncodingTool() {
           />
           <InfoCard
             title="Upload rồi tải xuống"
-            description="Có thể đọc một file text từ máy người dùng, chuyển mã và tải lại file kết quả."
+            description="Có thể đọc file text, XLSX, XLS hoặc XLSM và tải lại file kết quả ngay trên trình duyệt."
           />
           <InfoCard
             title="Phù hợp Vercel Free"
@@ -356,7 +479,7 @@ function UploadButton({ onChange }: { onChange: (event: ChangeEvent<HTMLInputEle
       Tải file lên
       <input
         type="file"
-        accept=".txt,.csv,.html,.xml,.md,.log,.json,text/plain,text/csv,text/html,text/xml,application/json"
+        accept=".txt,.csv,.html,.xml,.md,.log,.json,.xlsx,.xls,.xlsm,text/plain,text/csv,text/html,text/xml,application/json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
         className="sr-only"
         onChange={onChange}
       />

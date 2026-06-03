@@ -131,6 +131,13 @@ export default function HomePage() {
             <ComingSoonPanel tool={activeTool} />
           )}
         </section>
+
+        <footer className="rounded-[1.5rem] border border-[var(--line)] bg-white/65 px-5 py-4 text-sm text-[var(--muted)] shadow-[var(--shadow)] backdrop-blur">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p>© 2026 Kế toán Hub. All rights reserved.</p>
+            <p>Công cụ kế toán chạy nhanh trên trình duyệt, cập nhật dần theo từng nhu cầu sử dụng.</p>
+          </div>
+        </footer>
       </div>
     </main>
   );
